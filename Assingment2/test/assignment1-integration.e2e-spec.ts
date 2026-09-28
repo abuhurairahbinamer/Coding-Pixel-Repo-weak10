@@ -86,11 +86,11 @@ describe("Assignment 1 — Integration Tests with Supertest", () => {
 
   describe("Warm-up Requirements", () => {
     // [W1] WARM-UP REQUIREMENT: Separate test database configured through environment
-    it("[W1] should run against the dedicated test database 'assignment1_test' with migrations applied", async () => {
-      // CHECK: The active database is strictly 'assignment1_test', not the development database 'assignment1'
+    it("[W1] should run against the dedicated test database 'assignment2_test' with migrations applied", async () => {
+      // CHECK: The active database is strictly 'assignment2_test', not the development database 'assignment2'
       const activeDb = (dataSource.options as any).database;
-      expect(activeDb).toBe("assignment1_test");
-      expect(activeDb).not.toBe("assignment1");
+      expect(activeDb).toBe("assignment2_test");
+      expect(activeDb).not.toBe("assignment2");
 
       // Verify that migration tables and domain tables exist
       const tables: Array<{ table_name: string }> = await dataSource.query(`
@@ -410,16 +410,16 @@ describe("Assignment 1 — Integration Tests with Supertest", () => {
     });
 
     // [X3] CHALLENGE REQUIREMENT: Database Safety Guard prevents running against non-test DB
-    it("[X3] should confirm that database guard protects development database 'assignment1'", () => {
+    it("[X3] should confirm that database guard protects development database 'assignment2'", () => {
       // CHECK: Pointing the test environment at the development database makes the suite refuse to start
-      expect(() => assertTestDatabase("assignment1")).toThrowError(
-        /Refusing to run tests against database 'assignment1'/
+      expect(() => assertTestDatabase("assignment2")).toThrowError(
+        /Refusing to run tests against database 'assignment2'/
       );
       expect(() => assertTestDatabase("development")).toThrowError(
         /Refusing to run tests against database 'development'/
       );
       // Legitimate test database passes
-      expect(() => assertTestDatabase("assignment1_test")).not.toThrow();
+      expect(() => assertTestDatabase("assignment2_test")).not.toThrow();
     });
   });
 });
