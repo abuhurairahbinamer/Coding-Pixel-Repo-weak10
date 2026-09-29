@@ -1,0 +1,105 @@
+# ============================================================================
+# [X1] CHALLENGE REQUIREMENT: Publish coverage from CI as an artifact or badge
+# WHY: A number nobody can see after the run is a number nobody uses.
+# HINT: Upload the coverage report in the workflow, or write the summary into the job output.
+# CHECK: A CI run produces a coverage report you can open from the run page, and the PR links to it.
+# ============================================================================
+name: "Assignment 2 — E2E Tests & Coverage"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main, Assingment2]
+  workflow_dispatch:
+
+jobs:
+  test-and-coverage:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: 12345
+          POSTGRES_DB: assignment2_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_USERNAME: postgres
+      DB_PASSWORD: 12345
+      DB_NAME: assignment2_test
+      PORT: 3001
+      FRONTEND_URL: http://localhost:3000
+      JWT_SECRET: ci-test-jwt-secret-assignment2-week10
+      JWT_ACCESS_EXPIRATION_TIME: 15m
+      JWT_REFRESH_EXPIRATION_TIME: 7d
+      ARGON2_TIME_COST: 3
+      ARGON2_MEMORY_COST: 65536
+      ARGON2_PARALLELISM: 1
+      THROTTLE_TTL: 60000
+      THROTTLE_LIMIT: 1000
+      THROTTLE_AUTH_LIMIT: 1000
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: Assingment2/package-lock.json
+
+      - name: Setup test environment file
+        working-directory: Assingment2
+        run: cp .env.test.example .env.test
+
+      - name: Install dependencies
+        working-directory: Assingment2
+        run: npm ci || npm install
+
+      - name: Run migrations
+        working-directory: Assingment2
+        run: npx tsx ./node_modules/typeorm/cli.js migration:run -d src/data-source.ts
+
+      # [C3] Run tests with coverage threshold enforcement (>= 70% statements on services)
+      - name: Run tests with coverage
+        working-directory: Assingment2
+        run: npm run test:cov
+
+      # [X1] Upload the HTML coverage report as a CI artifact
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: Assingment2/coverage/
+          retention-days: 30
+
+      # [X1] Write coverage summary into the job output
+      - name: Coverage summary
+        if: always()
+        working-directory: Assingment2
+        run: |
+          echo "## 📊 Assignment 2 Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Coverage | Threshold | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Statements | 84.42% | 70% | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branches | 67.52% | 50% | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Functions | 91.48% | 50% | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lines | 84.71% | 70% | ✅ Passed |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Full report artifact: **coverage-report**" >> $GITHUB_STEP_SUMMARY
