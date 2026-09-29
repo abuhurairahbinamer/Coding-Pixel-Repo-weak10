@@ -13,8 +13,11 @@ import { assertTestDatabase } from "./database-guard.js";
 import AppDataSource from "../../src/data-source.js";
 
 export async function setup(): Promise<void> {
-  // [W1] Load dedicated .env.test for test suite configuration
+  // [W1] Load dedicated .env.test for test suite configuration (fallback to .env.test.example if missing)
   config({ path: resolve(process.cwd(), ".env.test") });
+  if (!process.env.DB_NAME) {
+    config({ path: resolve(process.cwd(), ".env.test.example") });
+  }
 
   const targetDbName = process.env.DB_NAME;
   console.log(`\n======================================================`);
